@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ChromeCuts</title>
+    <link rel="stylesheet" href="shared.css" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="brand">
+        <img src="icons/icon32.png" width="22" height="22" alt="" />
+        <div>
+          <h1>ChromeCuts</h1>
+          <p class="tagline">Tab navigation shortcuts</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Active shortcuts</h2>
+        <span id="bound-count" class="badge">—</span>
+      </div>
+      <ul id="shortcut-list" class="shortcut-list"></ul>
+    </section>
+
+    <footer class="footer">
+      <button id="open-shortcuts" type="button">Remap keys</button>
+      <button id="open-options" type="button" class="secondary">All commands</button>
+    </footer>
+
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>

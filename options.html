@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ChromeCuts — Shortcuts</title>
+    <link rel="stylesheet" href="shared.css" />
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div class="brand">
+          <img src="icons/icon48.png" width="40" height="40" alt="" />
+          <div>
+            <h1>ChromeCuts</h1>
+            <p>Custom keyboard shortcuts for Chrome, starting with tab navigation.</p>
+          </div>
+        </div>
+        <button id="open-shortcuts" type="button">Open Chrome shortcut settings</button>
+      </header>
+
+      <section class="card callout">
+        <h2>How to remap keys</h2>
+        <ol>
+          <li>Click <strong>Open Chrome shortcut settings</strong> (or go to <code>chrome://extensions/shortcuts</code>).</li>
+          <li>Find <strong>ChromeCuts</strong> in the list.</li>
+          <li>Click the pencil next to any command and press the keys you want.</li>
+          <li>Return here and reload this page to see the updated bindings.</li>
+        </ol>
+        <p class="note">
+          Chrome requires remapping through its own shortcuts page — extensions cannot
+          capture arbitrary global keys without that step. Defaults below are suggestions;
+          if a combo conflicts with another extension or OS shortcut, set your own.
+        </p>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Tab navigation</h2>
+          <span id="stats" class="badge">—</span>
+        </div>
+        <table class="cmd-table">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Shortcut</th>
+              <th>Command id</th>
+            </tr>
+          </thead>
+          <tbody id="command-rows"></tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Default suggestions</h2>
+        <p class="muted">
+          These are the keys suggested on install (Alt-based so they rarely fight Chrome’s
+          Cmd/Ctrl defaults). Remap freely.
+        </p>
+        <div class="defaults-grid">
+          <div><span class="kbd">⌥J</span> Next tab</div>
+          <div><span class="kbd">⌥K</span> Previous tab</div>
+          <div><span class="kbd">⌥⇧J</span> Move tab right</div>
+          <div><span class="kbd">⌥⇧K</span> Move tab left</div>
+        </div>
+        <p class="muted small">
+          Chrome only auto-binds up to four suggested shortcuts. Everything else
+          (first/last tab, close, reopen, pin, go-to-tab 1–8, mute, discard, …)
+          ships unbound — assign them at <code>chrome://extensions/shortcuts</code>.
+          On Windows/Linux the same combos use <strong>Alt</strong> instead of ⌥.
+        </p>
+      </section>
+
+      <footer class="page-footer">
+        <button id="reload-list" type="button" class="secondary">Refresh bindings</button>
+        <span class="muted small">ChromeCuts v1.0.0 · Manifest V3</span>
+      </footer>
+    </div>
+
+    <script src="options.js" type="module"></script>
+  </body>
+</html>
