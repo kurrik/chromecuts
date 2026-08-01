@@ -113,10 +113,13 @@ In the [Developer Dashboard](https://chrome.google.com/webstore/devconsole), ope
 |-------|---------|---------|
 | **version** | *(blank)* | Explicit version (e.g. `2.0.0`). Leave blank to auto-increment. |
 | **bump** | `patch` | When version is blank: `patch` (1.0.0→1.0.1), `minor` (→1.1.0), or `major` (→2.0.0) |
-| **publish** | on | Also submit on the Web Store (off = draft upload only) |
+| **publish** | **off** | Submit for CWS review (off = **draft upload only** / dry run) |
 | **create_github_release** | on | Commit manifest bump, tag `vX.Y.Z`, attach zip to a GitHub Release |
 
-Typical run: leave **version** blank, **bump** = patch, both checkboxes on.
+Typical dry run: leave **version** blank, **bump** = patch, **publish** unchecked.  
+Typical real release: same, but check **publish**.
+
+> **Gotcha fixed:** GitHub passes boolean inputs as strings; an unchecked box used to still run publish. Conditions now use `inputs.publish == true`.
 
 Release only happens **after** a successful store upload, so a failed OAuth/upload does not leave a tag.
 

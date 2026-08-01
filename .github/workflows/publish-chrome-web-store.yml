@@ -26,10 +26,10 @@ on:
           - major
         default: patch
       publish:
-        description: "Publish on Chrome Web Store after upload (uncheck = draft upload only)"
+        description: "Submit for CWS publish/review after upload. Uncheck for draft upload only (dry run)."
         required: true
         type: boolean
-        default: true
+        default: false
       create_github_release:
         description: "Commit version bump, tag vX.Y.Z, and create a GitHub Release with the zip"
         required: true
@@ -150,23 +150,31 @@ jobs:
             --client-secret "$CLIENT_SECRET" \
             --refresh-token "$REFRESH_TOKEN"
 
+      # NOTE: workflow_dispatch booleans arrive as strings "true"/"false".
+      # `if: inputs.publish` is always true for non-empty strings — compare explicitly.
       - name: Publish on Chrome Web Store
-        if: ${{ inputs.publish }}
+        if: ${{ inputs.publish == true }}
         env:
           EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
           CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
           REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
         run: |
+          echo "Submitting item for publish/review on Chrome Web Store…"
           npx --yes chrome-webstore-upload-cli@3 publish \
             --extension-id "$EXTENSION_ID" \
             --client-id "$CLIENT_ID" \
             --client-secret "$CLIENT_SECRET" \
             --refresh-token "$REFRESH_TOKEN"
 
+      - name: Skip CWS publish (draft upload only)
+        if: ${{ inputs.publish != true }}
+        run: |
+          echo "publish=false → skipped Chrome Web Store publish step (package uploaded as draft only)."
+
       # Only after a successful store upload: persist version in git + GitHub Release
       - name: Commit version, tag, and create GitHub Release
-        if: ${{ inputs.create_github_release }}
+        if: ${{ inputs.create_github_release == true }}
         env:
           VERSION: ${{ steps.version.outputs.version }}
           PREVIOUS: ${{ steps.version.outputs.previous }}
@@ -232,8 +240,11 @@ jobs:
             echo ""
             echo "- **Version:** \`${PREVIOUS:-?} → ${VERSION:-?}\` (\`${MODE:-?}\`)"
             echo "- **Extension ID:** \`$EXTENSION_ID\`"
-            echo "- **CWS publish:** \`$PUBLISH\`"
+            echo "- **CWS publish requested:** \`$PUBLISH\`"
             echo "- **GitHub release:** \`$RELEASE\`"
+            if [ "$PUBLISH" != "true" ]; then
+              echo "- **Note:** draft upload only — publish step was skipped"
+            fi
             if [ -n "${VERSION:-}" ] && [ "$RELEASE" = "true" ]; then
               echo "- **Tag:** \`v${VERSION}\`"
               echo "- **Release:** https://github.com/${{ github.repository }}/releases/tag/v${VERSION}"
