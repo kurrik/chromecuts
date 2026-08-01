@@ -1,0 +1,167 @@
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.22), transparent),
+    var(--bg);
+}
+
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px 20px 64px;
+}
+
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.brand {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.brand h1 {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.brand p {
+  margin: 0;
+  color: var(--text-muted);
+  max-width: 36em;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+
+.card h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.card-head h2 {
+  margin: 0;
+}
+
+.callout ol {
+  margin: 0 0 12px;
+  padding-left: 1.25em;
+  color: var(--text);
+}
+
+.callout li {
+  margin-bottom: 6px;
+}
+
+.callout code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--surface-2);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.note {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--accent-soft);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.muted {
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.cmd-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cmd-table th,
+.cmd-table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.cmd-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.cmd-table tr:last-child td {
+  border-bottom: none;
+}
+
+.cmd-table .id {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.defaults-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px 16px;
+  margin-bottom: 12px;
+}
+
+.defaults-grid > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.page-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+@media (max-width: 520px) {
+  .hero {
+    flex-direction: column;
+  }
+
+  .cmd-table .id {
+    display: none;
+  }
+}

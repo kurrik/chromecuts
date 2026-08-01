@@ -5,3 +5,8 @@
 *.crx
 *.pem
 node_modules/
+
+# Intermediate screenshot captures
+store/screenshots/*-raw.png
+store/screenshots/*-demo.png
+store/screenshots/store-*.png

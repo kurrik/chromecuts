@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="shared.css" />
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="brand">
+        <img src="icon48.png" width="40" height="40" alt="" />
+        <div>
+          <h1>ChromeCuts</h1>
+          <p>Custom keyboard shortcuts for Chrome, starting with tab navigation.</p>
+        </div>
+      </div>
+      <button type="button">Open Chrome shortcut settings</button>
+    </header>
+
+    <section class="card callout">
+      <h2>How to remap keys</h2>
+      <ol>
+        <li>Click <strong>Open Chrome shortcut settings</strong> (or go to <code>chrome://extensions/shortcuts</code>).</li>
+        <li>Find <strong>ChromeCuts</strong> in the list.</li>
+        <li>Click the pencil next to any command and press the keys you want.</li>
+        <li>Return here and reload this page to see the updated bindings.</li>
+      </ol>
+      <p class="note">
+        Same modifiers as Chrome’s tab switchers — only the key changes (J/K instead of [/]).
+      </p>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Tab navigation</h2>
+        <span class="badge">4 / 20 bound</span>
+      </div>
+      <table class="cmd-table">
+        <thead>
+          <tr><th>Action</th><th>Shortcut</th><th>Command id</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Switch to previous tab</td><td><span class="kbd">⌘⇧J</span></td><td class="id">prev-tab</td></tr>
+          <tr><td>Switch to next tab</td><td><span class="kbd">⌘⇧K</span></td><td class="id">next-tab</td></tr>
+          <tr><td>Move tab left</td><td><span class="kbd">⌥⇧K</span></td><td class="id">move-tab-left</td></tr>
+          <tr><td>Move tab right</td><td><span class="kbd">⌥⇧J</span></td><td class="id">move-tab-right</td></tr>
+          <tr><td>Switch to first tab</td><td><span class="kbd unset">Not set</span></td><td class="id">first-tab</td></tr>
+          <tr><td>Switch to last tab</td><td><span class="kbd unset">Not set</span></td><td class="id">last-tab</td></tr>
+          <tr><td>Close current tab</td><td><span class="kbd unset">Not set</span></td><td class="id">close-tab</td></tr>
+          <tr><td>Reopen last closed tab</td><td><span class="kbd unset">Not set</span></td><td class="id">reopen-tab</td></tr>
+          <tr><td>Go to tab 1</td><td><span class="kbd unset">Not set</span></td><td class="id">go-tab-1</td></tr>
+          <tr><td>Pin / unpin current tab</td><td><span class="kbd unset">Not set</span></td><td class="id">pin-tab</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</body>
+</html>

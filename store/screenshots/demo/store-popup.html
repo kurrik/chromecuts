@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1280px; height: 800px; overflow: hidden;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: #0b0d12;
+    color: #e8eaf0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 56px;
+    padding: 48px 64px;
+    background-image:
+      radial-gradient(ellipse 70% 60% at 20% 40%, rgba(99,102,241,0.28), transparent),
+      radial-gradient(ellipse 50% 50% at 85% 70%, rgba(99,102,241,0.12), transparent);
+  }
+  .copy { max-width: 480px; }
+  .eyebrow {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #a5b4fc; margin-bottom: 14px;
+  }
+  h1 {
+    font-size: 42px; font-weight: 750; letter-spacing: -0.03em;
+    line-height: 1.15; margin-bottom: 16px;
+  }
+  h1 span { color: #818cf8; }
+  p {
+    font-size: 18px; line-height: 1.55; color: #9aa3b5; margin-bottom: 28px;
+  }
+  .keys { display: flex; flex-wrap: wrap; gap: 10px; }
+  .key {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 14px; font-weight: 600;
+    background: #1a1d27; border: 1px solid #2e3345;
+    border-radius: 8px; padding: 8px 12px; color: #e8eaf0;
+  }
+  .key em { font-style: normal; color: #9aa3b5; margin-left: 8px; font-weight: 500; font-family: inherit; }
+  .device {
+    flex-shrink: 0;
+    width: 360px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.06),
+      0 30px 80px rgba(0,0,0,0.55),
+      0 0 60px rgba(99,102,241,0.15);
+  }
+  .device img { display: block; width: 100%; height: auto; }
+  .caption {
+    margin-top: 14px; text-align: center; font-size: 13px; color: #6b7289;
+  }
+</style>
+</head>
+<body>
+  <div class="copy">
+    <div class="eyebrow">Chrome extension</div>
+    <h1>Tab shortcuts,<br>remapped your way</h1>
+    <p>ChromeCuts maps extra keyboard shortcuts for tab navigation — same modifiers as Chrome’s <strong style="color:#e8eaf0">[</strong> / <strong style="color:#e8eaf0">]</strong>, with <strong style="color:#e8eaf0">J</strong> / <strong style="color:#e8eaf0">K</strong> instead.</p>
+    <div class="keys">
+      <div class="key">⌘⇧J<em>previous tab</em></div>
+      <div class="key">⌘⇧K<em>next tab</em></div>
+      <div class="key">⌥⇧J/K<em>move tab</em></div>
+    </div>
+  </div>
+  <div>
+    <div class="device">
+      <img src="../popup-demo.png" alt="ChromeCuts popup" width="340" height="420" />
+    </div>
+    <div class="caption">Toolbar popup · bound shortcuts at a glance</div>
+  </div>
+</body>
+</html>
