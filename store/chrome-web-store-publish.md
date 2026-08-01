@@ -2,7 +2,14 @@
 
 Manual workflow: **Actions → “Publish to Chrome Web Store” → Run workflow**.
 
-It zips `src/`, uploads to the Web Store API, and optionally publishes.
+Each run:
+
+1. **Resolves a new version** (auto patch bump by default, or explicit / minor / major)
+2. Writes it to `src/manifest.json`
+3. Zips `src/` and **uploads** to the Chrome Web Store (optional publish)
+4. On success: **commits** the version bump, creates tag `vX.Y.Z`, and a **GitHub Release** with the zip attached
+
+Version source of truth: `max(src/manifest.json, highest git tag v*)`, then increment. You normally never hand-tag.
 
 > The **first** listing must be created in the [Developer Dashboard](https://chrome.google.com/webstore/devconsole) (you already submitted). The API is for **updates** after that.
 
@@ -100,22 +107,33 @@ In the [Developer Dashboard](https://chrome.google.com/webstore/devconsole), ope
 
 ## Running the workflow
 
-1. Bump `version` in `src/manifest.json` on `main` **or** pass a higher version in the workflow input (CI-only bump; commit separately if you want git to match).
-2. **Actions → Publish to Chrome Web Store → Run workflow**
-   - **version** (optional): e.g. `1.0.1`
-   - **publish**: checked = upload + publish; unchecked = upload draft only
-3. Watch the run; Web Store review may still apply to the new version.
+**Actions → Publish to Chrome Web Store → Run workflow**
 
-## Local package only (no upload)
+| Input | Default | Meaning |
+|-------|---------|---------|
+| **version** | *(blank)* | Explicit version (e.g. `2.0.0`). Leave blank to auto-increment. |
+| **bump** | `patch` | When version is blank: `patch` (1.0.0→1.0.1), `minor` (→1.1.0), or `major` (→2.0.0) |
+| **publish** | on | Also submit on the Web Store (off = draft upload only) |
+| **create_github_release** | on | Commit manifest bump, tag `vX.Y.Z`, attach zip to a GitHub Release |
+
+Typical run: leave **version** blank, **bump** = patch, both checkboxes on.
+
+Release only happens **after** a successful store upload, so a failed OAuth/upload does not leave a tag.
+
+## Local helpers
 
 ```bash
+# Preview next patch version (writes manifest — use git checkout to discard)
+python3 scripts/resolve-and-set-version.py --bump patch
+
+# Package current manifest version
 ./scripts/package-extension.sh
 # → store/chromecuts-<version>.zip
 ```
 
 ## Notes
 
-- Each store upload needs a **higher** `manifest.json` `version` than the previous upload.
-- The workflow does **not** commit version bumps back to the repo (avoids needing write tokens). Prefer bumping version in a PR, then running the action.
+- Each store upload needs a **higher** version than the previous CWS package (auto-bump handles this for git tags/manifest).
 - Do not put OAuth secrets in the repo; only GitHub Actions secrets.
 - Publisher account must have **2-Step Verification** enabled to publish/update via the API.
+- Concurrent runs are serialized (`concurrency` group) so two publishes cannot race on the same version.

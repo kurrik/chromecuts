@@ -1,12 +1,10 @@
-# Manually publish / update ChromeCuts on the Chrome Web Store.
+# Manually publish / update ChromeCuts on the Chrome Web Store,
+# auto-bump version, commit, tag, and create a GitHub Release.
 #
-# Required repo secrets (Settings → Secrets and variables → Actions):
-#   CHROME_EXTENSION_ID   — item ID from the Developer Dashboard URL
-#   CHROME_CLIENT_ID      — OAuth 2.0 client ID
-#   CHROME_CLIENT_SECRET  — OAuth 2.0 client secret
-#   CHROME_REFRESH_TOKEN  — refresh token with Chrome Web Store scope
+# Required repo secrets:
+#   CHROME_EXTENSION_ID, CHROME_CLIENT_ID, CHROME_CLIENT_SECRET, CHROME_REFRESH_TOKEN
 #
-# Setup guide: store/chrome-web-store-publish.md
+# Setup: store/chrome-web-store-publish.md
 
 name: Publish to Chrome Web Store
 
@@ -14,26 +12,47 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Optional new version (e.g. 1.0.1). Must be greater than the live/draft version. Leave blank to keep src/manifest.json as-is."
+        description: "Optional explicit version (e.g. 1.1.0). Leave blank to auto-increment."
         required: false
         type: string
         default: ""
+      bump:
+        description: "When version is blank, which component to increment"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
       publish:
-        description: "Publish after upload (uncheck to upload a draft only)"
+        description: "Publish on Chrome Web Store after upload (uncheck = draft upload only)"
+        required: true
+        type: boolean
+        default: true
+      create_github_release:
+        description: "Commit version bump, tag vX.Y.Z, and create a GitHub Release with the zip"
         required: true
         type: boolean
         default: true
 
+concurrency:
+  group: chrome-web-store-publish
+  cancel-in-progress: false
+
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   publish:
-    name: Package and upload
+    name: Version, package, upload, release
     runs-on: ubuntu-latest
     steps:
       - name: Check out
         uses: actions/checkout@v4
+        with:
+          # Need tags to compute next version from prior releases
+          fetch-depth: 0
 
       - name: Verify required secrets
         env:
@@ -54,32 +73,29 @@ jobs:
             exit 1
           fi
 
-      - name: Bump version (optional)
-        if: ${{ inputs.version != '' }}
+      - name: Resolve and set version
+        id: version
         env:
-          NEW_VERSION: ${{ inputs.version }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_BUMP: ${{ inputs.bump }}
         run: |
-          python3 << 'PY'
-          import json, os, re, pathlib
-          path = pathlib.Path("src/manifest.json")
-          data = json.loads(path.read_text())
-          new = os.environ["NEW_VERSION"].strip()
-          if not re.fullmatch(r"\d+(\.\d+){0,3}", new):
-              raise SystemExit(f"Invalid version: {new!r} (use digits and dots, e.g. 1.0.1)")
-          old = data["version"]
-          def parts(v):
-              return [int(x) for x in v.split(".")]
-          # pad for comparison
-          a, b = parts(old), parts(new)
-          n = max(len(a), len(b))
-          a += [0] * (n - len(a))
-          b += [0] * (n - len(b))
-          if b <= a:
-              raise SystemExit(f"New version {new} must be greater than current {old}")
-          data["version"] = new
-          path.write_text(json.dumps(data, indent=2) + "\n")
-          print(f"Version: {old} → {new}")
-          PY
+          chmod +x scripts/resolve-and-set-version.py
+          if [ -n "${INPUT_VERSION// }" ]; then
+            scripts/resolve-and-set-version.py --version "$INPUT_VERSION" | tee /tmp/version.out
+          else
+            scripts/resolve-and-set-version.py --bump "$INPUT_BUMP" | tee /tmp/version.out
+          fi
+          version="$(sed -n 's/^version=//p' /tmp/version.out | tail -1)"
+          previous="$(sed -n 's/^previous=//p' /tmp/version.out | tail -1)"
+          mode="$(sed -n 's/^mode=//p' /tmp/version.out | tail -1)"
+          if [ -z "$version" ]; then
+            echo "::error::Failed to resolve version"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "previous=$previous" >> "$GITHUB_OUTPUT"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: $previous → $version ($mode)"
 
       - name: Package extension
         id: package
@@ -93,16 +109,25 @@ jobs:
             cat /tmp/package.out
             exit 1
           fi
+          if [ "$version" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::Package version $version != resolved ${{ steps.version.outputs.version }}"
+            exit 1
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "zip_path=$zip_path" >> "$GITHUB_OUTPUT"
           ls -la "$zip_path"
-          python3 - <<PY
-          import zipfile
-          z = zipfile.ZipFile("$zip_path")
+          ZIP_PATH="$zip_path" EXPECT_VERSION="$version" python3 - <<'PY'
+          import json, os, zipfile
+          path = os.environ["ZIP_PATH"]
+          expect = os.environ["EXPECT_VERSION"]
+          z = zipfile.ZipFile(path)
           print("zip entries:")
           for n in z.namelist()[:40]:
               print(" ", n)
           assert "manifest.json" in z.namelist(), "manifest.json missing at zip root"
+          data = json.loads(z.read("manifest.json"))
+          assert data["version"] == expect, (data["version"], expect)
+          print("manifest version in zip:", data["version"])
           PY
 
       - name: Set up Node
@@ -139,24 +164,78 @@ jobs:
             --client-secret "$CLIENT_SECRET" \
             --refresh-token "$REFRESH_TOKEN"
 
-      - name: Summary
+      # Only after a successful store upload: persist version in git + GitHub Release
+      - name: Commit version, tag, and create GitHub Release
+        if: ${{ inputs.create_github_release }}
         env:
-          VERSION: ${{ steps.package.outputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
+          PREVIOUS: ${{ steps.version.outputs.previous }}
+          MODE: ${{ steps.version.outputs.mode }}
+          ZIP_PATH: ${{ steps.package.outputs.zip_path }}
           PUBLISH: ${{ inputs.publish }}
+          EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add src/manifest.json
+          if git diff --cached --quiet; then
+            echo "::error::manifest version was not changed; refusing empty release commit"
+            exit 1
+          fi
+
+          git commit -m "Release v${VERSION}
+
+          Chrome Web Store package ${VERSION} (${MODE}; was ${PREVIOUS}).
+          Publish to store: ${PUBLISH}."
+
+          git tag -a "v${VERSION}" -m "ChromeCuts v${VERSION}"
+
+          git push origin "HEAD:${BRANCH}"
+          git push origin "v${VERSION}"
+
+          notes="$(cat <<EOF
+          ## ChromeCuts v${VERSION}
+
+          - **Previous version:** ${PREVIOUS}
+          - **Bump mode:** ${MODE}
+          - **Chrome Web Store:** uploaded$([ "$PUBLISH" = "true" ] && echo " and submitted for publish/review" || echo " as draft only")
+          - **Extension ID:** \`${EXTENSION_ID}\`
+
+          Package artifact: \`chromecuts-${VERSION}.zip\` (also attached to this release).
+
+          Install from source: load unpacked \`src/\` at this tag, or use the store listing once review completes.
+          EOF
+          )"
+
+          gh release create "v${VERSION}" "$ZIP_PATH" \
+            --title "v${VERSION}" \
+            --notes "$notes"
+
+          echo "Created tag and release v${VERSION}"
+
+      - name: Summary
+        if: always()
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          PREVIOUS: ${{ steps.version.outputs.previous }}
+          MODE: ${{ steps.version.outputs.mode }}
+          PUBLISH: ${{ inputs.publish }}
+          RELEASE: ${{ inputs.create_github_release }}
           EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
         run: |
           {
-            echo "## Chrome Web Store update"
+            echo "## Chrome Web Store + GitHub release"
             echo ""
-            echo "- **Version:** \`$VERSION\`"
+            echo "- **Version:** \`${PREVIOUS:-?} → ${VERSION:-?}\` (\`${MODE:-?}\`)"
             echo "- **Extension ID:** \`$EXTENSION_ID\`"
-            echo "- **Publish:** \`$PUBLISH\`"
-            echo ""
-            if [ "$PUBLISH" = "true" ]; then
-              echo "Uploaded and submitted for publish/review."
-            else
-              echo "Uploaded as a draft only (not published)."
+            echo "- **CWS publish:** \`$PUBLISH\`"
+            echo "- **GitHub release:** \`$RELEASE\`"
+            if [ -n "${VERSION:-}" ] && [ "$RELEASE" = "true" ]; then
+              echo "- **Tag:** \`v${VERSION}\`"
+              echo "- **Release:** https://github.com/${{ github.repository }}/releases/tag/v${VERSION}"
             fi
-            echo ""
-            echo "Note: version bumps applied only in this run’s workspace; commit a version change to the repo if you want git to match the store."
           } >> "$GITHUB_STEP_SUMMARY"
