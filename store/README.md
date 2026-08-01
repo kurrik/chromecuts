@@ -1,8 +1,25 @@
 # Chrome Web Store assets
 
-## Screenshots (1280×800)
+## Store listing assets
 
 Ready to upload in the [Chrome Developer Dashboard](https://chrome.google.com/webstore/devconsole):
+
+### Icon
+
+| File | Spec |
+|------|------|
+| `icon-128.png` | 128×128 |
+
+### Promo tiles (24-bit PNG, no alpha; JPEG copies also provided)
+
+| File | Spec |
+|------|------|
+| `small-promo-440x280.png` (also `.jpg`) | Small promo · 440×280 |
+| `marquee-promo-1400x560.png` (also `.jpg`) | Marquee · 1400×560 |
+
+Sources: `promo/small.html`, `promo/marquee.html`.
+
+### Screenshots (1280×800)
 
 | File | Content |
 |------|---------|

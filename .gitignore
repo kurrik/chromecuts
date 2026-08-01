@@ -10,3 +10,6 @@ node_modules/
 store/screenshots/*-raw.png
 store/screenshots/*-demo.png
 store/screenshots/store-*.png
+
+store/*.zip
+store/chromecuts-*.zip

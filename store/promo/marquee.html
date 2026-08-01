@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1400px; height: 560px; overflow: hidden;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: #e8eaf0;
+    background: #0b0d12;
+    background-image:
+      radial-gradient(ellipse 55% 80% at 12% 50%, rgba(99,102,241,0.35), transparent 60%),
+      radial-gradient(ellipse 40% 60% at 88% 30%, rgba(79,70,229,0.2), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 60% 100%, rgba(99,102,241,0.12), transparent);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 56px 72px;
+    gap: 48px;
+  }
+  .left { max-width: 620px; }
+  .eyebrow {
+    font-size: 14px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #a5b4fc; margin-bottom: 16px;
+  }
+  h1 {
+    font-size: 56px; font-weight: 750; letter-spacing: -0.035em;
+    line-height: 1.08; margin-bottom: 18px;
+  }
+  h1 span { color: #818cf8; }
+  .sub {
+    font-size: 20px; line-height: 1.5; color: #9aa3b5;
+    max-width: 34em; margin-bottom: 32px;
+  }
+  .keys { display: flex; flex-wrap: wrap; gap: 10px; }
+  .kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 16px; font-weight: 700;
+    background: #1a1d27; border: 1px solid #2e3345;
+    border-radius: 10px; padding: 10px 14px; color: #e8eaf0;
+  }
+  .kbd em {
+    font-style: normal; font-family: "Segoe UI", system-ui, sans-serif;
+    font-weight: 500; color: #9aa3b5; margin-left: 10px; font-size: 14px;
+  }
+  .panel {
+    width: 420px; flex-shrink: 0;
+    background: #1a1d27;
+    border: 1px solid #2e3345;
+    border-radius: 20px;
+    padding: 28px 28px 24px;
+    box-shadow: 0 28px 70px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+  }
+  .brand {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 22px; padding-bottom: 18px;
+    border-bottom: 1px solid #2e3345;
+  }
+  .brand img {
+    width: 48px; height: 48px; border-radius: 12px;
+  }
+  .brand h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+  .brand p { font-size: 13px; color: #9aa3b5; margin-top: 2px; }
+  .row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0; border-bottom: 1px solid #2e3345;
+    font-size: 15px;
+  }
+  .row:last-child { border-bottom: none; }
+  .row .k {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px; font-weight: 700;
+    background: #242836; border: 1px solid #2e3345;
+    border-radius: 8px; padding: 5px 10px;
+  }
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="eyebrow">Chrome extension</div>
+    <h1>Tab shortcuts,<br><span>remapped your way</span></h1>
+    <p class="sub">Same modifiers as Chrome’s [ and ] — with J and K instead. Plus pin, move, reopen, and more.</p>
+    <div class="keys">
+      <span class="kbd">⌘⇧J<em>previous</em></span>
+      <span class="kbd">⌘⇧K<em>next</em></span>
+      <span class="kbd">⌥⇧J/K<em>move</em></span>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="brand">
+      <img src="icon128.png" width="48" height="48" alt="" />
+      <div>
+        <h2>ChromeCuts</h2>
+        <p>Tab navigation shortcuts</p>
+      </div>
+    </div>
+    <div class="row"><span>Previous tab</span><span class="k">⌘⇧J</span></div>
+    <div class="row"><span>Next tab</span><span class="k">⌘⇧K</span></div>
+    <div class="row"><span>Move tab left</span><span class="k">⌥⇧K</span></div>
+    <div class="row"><span>Move tab right</span><span class="k">⌥⇧J</span></div>
+  </div>
+</body>
+</html>
