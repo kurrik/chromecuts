@@ -9,7 +9,7 @@ Chrome’s built-in tab shortcuts are limited and hard to remould. ChromeCuts ad
 1. Open Chrome → `chrome://extensions`
 2. Enable **Developer mode** (top right)
 3. Click **Load unpacked**
-4. Select this folder (`chromecuts`)
+4. Select the **`src`** folder inside this repo (`chromecuts/src`)
 
 You should see **ChromeCuts** in the toolbar.
 
@@ -67,15 +67,17 @@ If a suggested combo doesn’t stick (conflict with another extension or the OS)
 
 ```
 chromecuts/
-  manifest.json      # MV3 manifest + command definitions
-  background.js      # Command handlers (tabs / sessions APIs)
-  popup.*            # Toolbar popup — bound shortcuts at a glance
-  options.*          # Full command list + remap instructions
-  commands-ui.js     # Shared UI helpers
-  icons/             # Extension icons
+  src/                 # Load this folder as the unpacked extension
+    manifest.json      # MV3 manifest + command definitions
+    background.js      # Command handlers (tabs / sessions APIs)
+    popup.*            # Toolbar popup — bound shortcuts at a glance
+    options.*          # Full command list + remap instructions
+    commands-ui.js     # Shared UI helpers
+    icons/             # Extension icons
+  store/               # Web Store screenshots + regen assets
 ```
 
-After editing code: `chrome://extensions` → ChromeCuts → **Reload**.
+After editing code: `chrome://extensions` → ChromeCuts → **Reload** (extension root is `src/`).
 
 ## Roadmap ideas
 
