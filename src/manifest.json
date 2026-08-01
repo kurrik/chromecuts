@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
   "name": "ChromeCuts",
-  "version": "1.0.0",
-  "description": "Map custom keyboard shortcuts for Chrome — starting with tab navigation.",
-  "permissions": ["tabs", "sessions"],
+  "version": "1.0.1",
+  "description": "Map custom keyboard shortcuts for Chrome \u2014 starting with tab navigation.",
+  "permissions": [
+    "tabs",
+    "sessions"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
