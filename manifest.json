@@ -31,15 +31,13 @@
   "commands": {
     "next-tab": {
       "suggested_key": {
-        "default": "Alt+J",
-        "mac": "Alt+J"
+        "default": "Ctrl+Shift+K"
       },
       "description": "Switch to next tab"
     },
     "prev-tab": {
       "suggested_key": {
-        "default": "Alt+K",
-        "mac": "Alt+K"
+        "default": "Ctrl+Shift+J"
       },
       "description": "Switch to previous tab"
     },

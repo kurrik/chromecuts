@@ -27,12 +27,14 @@ You should see **ChromeCuts** in the toolbar.
 
 Chrome only auto-assigns **four** suggested keys per extension. On install:
 
-| Action           | Suggested key  |
-| ---------------- | -------------- |
-| Next tab         | `Alt+J` / `⌥J` |
-| Previous tab     | `Alt+K` / `⌥K` |
-| Move tab left    | `Alt+Shift+K`  |
-| Move tab right   | `Alt+Shift+J`  |
+Same modifiers as Chrome’s built-in tab switchers (`⌘⇧[` / `⌘⇧]` on Mac — Ctrl+Shift on Windows/Linux), but **J/K** instead of **[/]**:
+
+| Action        | Chrome built-in     | ChromeCuts default              |
+| ------------- | ------------------- | ------------------------------- |
+| Previous tab  | `Ctrl/⌘+Shift+[`    | `Ctrl/⌘+Shift+J`                |
+| Next tab      | `Ctrl/⌘+Shift+]`    | `Ctrl/⌘+Shift+K`                |
+| Move tab left | —                   | `Alt+Shift+K` (⌥⇧K on Mac)      |
+| Move tab right| —                   | `Alt+Shift+J` (⌥⇧J on Mac)      |
 
 All other commands (first/last tab, close, reopen, pin, go-to-tab 1–8, mute, discard, …) ship **unbound** — bind them yourself at `chrome://extensions/shortcuts`.
 
