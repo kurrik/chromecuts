@@ -1,0 +1,152 @@
+# Manually publish / update ChromeCuts on the Chrome Web Store.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   CHROME_EXTENSION_ID   — item ID from the Developer Dashboard URL
+#   CHROME_CLIENT_ID      — OAuth 2.0 client ID
+#   CHROME_CLIENT_SECRET  — OAuth 2.0 client secret
+#   CHROME_REFRESH_TOKEN  — refresh token with Chrome Web Store scope
+#
+# Setup guide: store/chrome-web-store-publish.md
+
+name: Publish to Chrome Web Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Optional new version (e.g. 1.0.1). Must be greater than the live/draft version. Leave blank to keep src/manifest.json as-is."
+        required: false
+        type: string
+        default: ""
+      publish:
+        description: "Publish after upload (uncheck to upload a draft only)"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Package and upload
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Verify required secrets
+        env:
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+        run: |
+          missing=0
+          for name in CHROME_EXTENSION_ID CHROME_CLIENT_ID CHROME_CLIENT_SECRET CHROME_REFRESH_TOKEN; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing secret: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Add secrets documented in store/chrome-web-store-publish.md"
+            exit 1
+          fi
+
+      - name: Bump version (optional)
+        if: ${{ inputs.version != '' }}
+        env:
+          NEW_VERSION: ${{ inputs.version }}
+        run: |
+          python3 << 'PY'
+          import json, os, re, pathlib
+          path = pathlib.Path("src/manifest.json")
+          data = json.loads(path.read_text())
+          new = os.environ["NEW_VERSION"].strip()
+          if not re.fullmatch(r"\d+(\.\d+){0,3}", new):
+              raise SystemExit(f"Invalid version: {new!r} (use digits and dots, e.g. 1.0.1)")
+          old = data["version"]
+          def parts(v):
+              return [int(x) for x in v.split(".")]
+          # pad for comparison
+          a, b = parts(old), parts(new)
+          n = max(len(a), len(b))
+          a += [0] * (n - len(a))
+          b += [0] * (n - len(b))
+          if b <= a:
+              raise SystemExit(f"New version {new} must be greater than current {old}")
+          data["version"] = new
+          path.write_text(json.dumps(data, indent=2) + "\n")
+          print(f"Version: {old} → {new}")
+          PY
+
+      - name: Package extension
+        id: package
+        run: |
+          chmod +x scripts/package-extension.sh
+          # Capture version + path from script output
+          out="$(scripts/package-extension.sh store)"
+          echo "$out"
+          version="$(echo "$out" | sed -n 's/^version=//p' | tail -1)"
+          zip_path="$(echo "$out" | sed -n 's/^zip_path=//p' | tail -1)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "zip_path=$zip_path" >> "$GITHUB_OUTPUT"
+          ls -la "$zip_path"
+          unzip -l "$zip_path" | head -30
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Upload to Chrome Web Store
+        env:
+          EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          ZIP_PATH: ${{ steps.package.outputs.zip_path }}
+        run: |
+          npx --yes chrome-webstore-upload-cli@3 upload \
+            --source "$ZIP_PATH" \
+            --extension-id "$EXTENSION_ID" \
+            --client-id "$CLIENT_ID" \
+            --client-secret "$CLIENT_SECRET" \
+            --refresh-token "$REFRESH_TOKEN"
+
+      - name: Publish on Chrome Web Store
+        if: ${{ inputs.publish }}
+        env:
+          EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+        run: |
+          npx --yes chrome-webstore-upload-cli@3 publish \
+            --extension-id "$EXTENSION_ID" \
+            --client-id "$CLIENT_ID" \
+            --client-secret "$CLIENT_SECRET" \
+            --refresh-token "$REFRESH_TOKEN"
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.package.outputs.version }}
+          PUBLISH: ${{ inputs.publish }}
+          EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+        run: |
+          {
+            echo "## Chrome Web Store update"
+            echo ""
+            echo "- **Version:** \`$VERSION\`"
+            echo "- **Extension ID:** \`$EXTENSION_ID\`"
+            echo "- **Publish:** \`$PUBLISH\`"
+            echo ""
+            if [ "$PUBLISH" = "true" ]; then
+              echo "Uploaded and submitted for publish/review."
+            else
+              echo "Uploaded as a draft only (not published)."
+            fi
+            echo ""
+            echo "Note: version bumps applied only in this run’s workspace; commit a version change to the repo if you want git to match the store."
+          } >> "$GITHUB_STEP_SUMMARY"
