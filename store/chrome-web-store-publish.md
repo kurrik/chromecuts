@@ -5,11 +5,21 @@ Manual workflow: **Actions → “Publish to Chrome Web Store” → Run workflo
 Each run:
 
 1. **Resolves a new version** (auto patch bump by default, or explicit / minor / major)
-2. Writes it to `src/manifest.json`
-3. Zips `src/` and **uploads** to the Chrome Web Store (optional publish)
-4. On success: **commits** the version bump, creates tag `vX.Y.Z`, and a **GitHub Release** with the zip attached
+2. Writes it to `src/manifest.json` and zips `src/`
+3. Optionally talks to the Chrome Web Store (`cws_action`)
+4. Optionally **commits** the version bump, tags `vX.Y.Z`, and creates a **GitHub Release** with the zip
 
 Version source of truth: `max(src/manifest.json, highest git tag v*)`, then increment. You normally never hand-tag.
+
+### `cws_action` (important)
+
+| Value | CWS API | Meaning |
+|-------|---------|---------|
+| **`none`** (default) | none | **True dry run** — package (+ optional GitHub release) only |
+| **`upload`** | upload only | Put a new package on the item as a **draft**; does **not** call publish |
+| **`publish`** | upload + publish | Upload, then **submit for review** |
+
+While the listing is **pending review**, CWS returns `ITEM_NOT_UPDATABLE` on **upload** (not only publish). Cancel the submission or wait for review before uploading again.
 
 > The **first** listing must be created in the [Developer Dashboard](https://chrome.google.com/webstore/devconsole) (you already submitted). The API is for **updates** after that.
 
@@ -112,14 +122,13 @@ In the [Developer Dashboard](https://chrome.google.com/webstore/devconsole), ope
 | Input | Default | Meaning |
 |-------|---------|---------|
 | **version** | *(blank)* | Explicit version (e.g. `2.0.0`). Leave blank to auto-increment. |
-| **bump** | `patch` | When version is blank: `patch` (1.0.0→1.0.1), `minor` (→1.1.0), or `major` (→2.0.0) |
-| **publish** | **off** | Submit for CWS review (off = **draft upload only** / dry run) |
+| **bump** | `patch` | When version is blank: `patch` / `minor` / `major` |
+| **cws_action** | **`none`** | `none` / `upload` / `publish` (see table above) |
 | **create_github_release** | on | Commit manifest bump, tag `vX.Y.Z`, attach zip to a GitHub Release |
 
-Typical dry run: leave **version** blank, **bump** = patch, **publish** unchecked.  
-Typical real release: same, but check **publish**.
-
-> **Gotcha fixed:** GitHub passes boolean inputs as strings; an unchecked box used to still run publish. Conditions now use `inputs.publish == true`.
+Typical dry run: **`cws_action=none`**.  
+Store update without submit: **`upload`**.  
+Ship: **`publish`**.
 
 Release only happens **after** a successful store upload, so a failed OAuth/upload does not leave a tag.
 

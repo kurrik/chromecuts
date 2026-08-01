@@ -83,9 +83,10 @@ After editing code: `chrome://extensions` → ChromeCuts → **Reload** (extensi
 
 - Package locally: `./scripts/package-extension.sh` → `store/chromecuts-<version>.zip`
 - **Manual CI release:** GitHub **Actions → Publish to Chrome Web Store → Run workflow**
-  - Auto-increments **patch** version by default (optional minor/major or explicit version)
-  - Uploads to the Web Store, then commits the version, tags `vX.Y.Z`, and creates a GitHub Release with the zip
-  - Secrets: `CHROME_EXTENSION_ID`, `CHROME_CLIENT_ID`, `CHROME_CLIENT_SECRET`, `CHROME_REFRESH_TOKEN`
+  - Auto-increments **patch** by default (optional minor/major or explicit version)
+  - **`cws_action`:** `none` (dry run) · `upload` (draft) · `publish` (submit for review)
+  - Optionally commits the version, tags `vX.Y.Z`, and creates a GitHub Release with the zip
+  - Secrets (for upload/publish): `CHROME_EXTENSION_ID`, `CHROME_CLIENT_ID`, `CHROME_CLIENT_SECRET`, `CHROME_REFRESH_TOKEN`
   - Full setup: [store/chrome-web-store-publish.md](store/chrome-web-store-publish.md)
 
 ## Roadmap ideas

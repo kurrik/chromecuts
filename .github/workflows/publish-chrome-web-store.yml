@@ -1,7 +1,7 @@
 # Manually publish / update ChromeCuts on the Chrome Web Store,
 # auto-bump version, commit, tag, and create a GitHub Release.
 #
-# Required repo secrets:
+# Required repo secrets (only if cws_action is upload or publish):
 #   CHROME_EXTENSION_ID, CHROME_CLIENT_ID, CHROME_CLIENT_SECRET, CHROME_REFRESH_TOKEN
 #
 # Setup: store/chrome-web-store-publish.md
@@ -25,11 +25,15 @@ on:
           - minor
           - major
         default: patch
-      publish:
-        description: "Submit for CWS publish/review after upload. Uncheck for draft upload only (dry run)."
+      cws_action:
+        description: "Chrome Web Store: none = dry run (no CWS API); upload = draft only; publish = upload + submit"
         required: true
-        type: boolean
-        default: false
+        type: choice
+        options:
+          - none
+          - upload
+          - publish
+        default: none
       create_github_release:
         description: "Commit version bump, tag vX.Y.Z, and create a GitHub Release with the zip"
         required: true
@@ -51,10 +55,37 @@ jobs:
       - name: Check out
         uses: actions/checkout@v4
         with:
-          # Need tags to compute next version from prior releases
           fetch-depth: 0
 
+      - name: Log run mode
+        env:
+          CWS_ACTION: ${{ inputs.cws_action }}
+          CREATE_RELEASE: ${{ inputs.create_github_release }}
+          BUMP: ${{ inputs.bump }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          echo "cws_action=$CWS_ACTION"
+          echo "create_github_release=$CREATE_RELEASE"
+          echo "bump=$BUMP"
+          echo "version_input=${VERSION:-<auto>}"
+          case "$CWS_ACTION" in
+            none)
+              echo "Mode: DRY RUN — package only; no Chrome Web Store API calls."
+              ;;
+            upload)
+              echo "Mode: UPLOAD — draft package to CWS; will NOT call publish."
+              ;;
+            publish)
+              echo "Mode: PUBLISH — upload then submit for CWS review."
+              ;;
+            *)
+              echo "::error::Unknown cws_action=$CWS_ACTION"
+              exit 1
+              ;;
+          esac
+
       - name: Verify required secrets
+        if: ${{ inputs.cws_action == 'upload' || inputs.cws_action == 'publish' }}
         env:
           CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
           CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
@@ -131,11 +162,14 @@ jobs:
           PY
 
       - name: Set up Node
+        if: ${{ inputs.cws_action == 'upload' || inputs.cws_action == 'publish' }}
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Upload to Chrome Web Store
+      - name: Upload package to Chrome Web Store (draft)
+        id: cws_upload
+        if: ${{ inputs.cws_action == 'upload' || inputs.cws_action == 'publish' }}
         env:
           EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
           CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
@@ -143,36 +177,54 @@ jobs:
           REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
           ZIP_PATH: ${{ steps.package.outputs.zip_path }}
         run: |
-          npx --yes chrome-webstore-upload-cli@3 upload \
+          set -euo pipefail
+          echo "Calling CWS upload API only (not publish)…"
+          set +e
+          out="$(npx --yes chrome-webstore-upload-cli@3 upload \
             --source "$ZIP_PATH" \
             --extension-id "$EXTENSION_ID" \
             --client-id "$CLIENT_ID" \
             --client-secret "$CLIENT_SECRET" \
-            --refresh-token "$REFRESH_TOKEN"
+            --refresh-token "$REFRESH_TOKEN" 2>&1)"
+          code=$?
+          set -e
+          echo "$out"
+          if [ "$code" -ne 0 ]; then
+            if echo "$out" | grep -q 'ITEM_NOT_UPDATABLE'; then
+              echo "::error::Chrome Web Store rejected the upload: item is not updatable right now."
+              echo "Usually this means the listing is still pending review, ready to publish, or deleted."
+              echo "Wait for review to finish, or cancel the submission in the Developer Dashboard, then re-run."
+              echo "This is NOT the publish step — only package upload was attempted."
+            fi
+            exit "$code"
+          fi
+          if echo "$out" | grep -q "uploadState: 'FAILURE'"; then
+            echo "::error::CWS returned uploadState FAILURE"
+            exit 1
+          fi
+          echo "Upload API succeeded (draft package on item)."
 
-      # NOTE: workflow_dispatch booleans arrive as strings "true"/"false".
-      # `if: inputs.publish` is always true for non-empty strings — compare explicitly.
-      - name: Publish on Chrome Web Store
-        if: ${{ inputs.publish == true }}
+      - name: Submit for publish/review on Chrome Web Store
+        if: ${{ inputs.cws_action == 'publish' }}
         env:
           EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
           CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
           REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
         run: |
-          echo "Submitting item for publish/review on Chrome Web Store…"
+          echo "Calling CWS publish API (submit for review)…"
           npx --yes chrome-webstore-upload-cli@3 publish \
             --extension-id "$EXTENSION_ID" \
             --client-id "$CLIENT_ID" \
             --client-secret "$CLIENT_SECRET" \
             --refresh-token "$REFRESH_TOKEN"
 
-      - name: Skip CWS publish (draft upload only)
-        if: ${{ inputs.publish != true }}
+      - name: Skip all Chrome Web Store API calls
+        if: ${{ inputs.cws_action == 'none' }}
         run: |
-          echo "publish=false → skipped Chrome Web Store publish step (package uploaded as draft only)."
+          echo "cws_action=none → no upload and no publish. Local package only."
 
-      # Only after a successful store upload: persist version in git + GitHub Release
+      # Persist version only after a successful package (and CWS steps if any).
       - name: Commit version, tag, and create GitHub Release
         if: ${{ inputs.create_github_release == true }}
         env:
@@ -180,7 +232,7 @@ jobs:
           PREVIOUS: ${{ steps.version.outputs.previous }}
           MODE: ${{ steps.version.outputs.mode }}
           ZIP_PATH: ${{ steps.package.outputs.zip_path }}
-          PUBLISH: ${{ inputs.publish }}
+          CWS_ACTION: ${{ inputs.cws_action }}
           EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: ${{ github.ref_name }}
@@ -197,25 +249,31 @@ jobs:
 
           git commit -m "Release v${VERSION}
 
-          Chrome Web Store package ${VERSION} (${MODE}; was ${PREVIOUS}).
-          Publish to store: ${PUBLISH}."
+          Package ${VERSION} (${MODE}; was ${PREVIOUS}).
+          Chrome Web Store action: ${CWS_ACTION}."
 
           git tag -a "v${VERSION}" -m "ChromeCuts v${VERSION}"
 
           git push origin "HEAD:${BRANCH}"
           git push origin "v${VERSION}"
 
+          case "$CWS_ACTION" in
+            none) cws_note="not sent to Chrome Web Store (dry run)" ;;
+            upload) cws_note="uploaded as draft only (not submitted for review)" ;;
+            publish) cws_note="uploaded and submitted for publish/review" ;;
+          esac
+
           notes="$(cat <<EOF
           ## ChromeCuts v${VERSION}
 
           - **Previous version:** ${PREVIOUS}
           - **Bump mode:** ${MODE}
-          - **Chrome Web Store:** uploaded$([ "$PUBLISH" = "true" ] && echo " and submitted for publish/review" || echo " as draft only")
-          - **Extension ID:** \`${EXTENSION_ID}\`
+          - **Chrome Web Store:** ${cws_note}
+          - **Extension ID:** \`${EXTENSION_ID:-n/a}\`
 
-          Package artifact: \`chromecuts-${VERSION}.zip\` (also attached to this release).
+          Package artifact: \`chromecuts-${VERSION}.zip\` (attached to this release).
 
-          Install from source: load unpacked \`src/\` at this tag, or use the store listing once review completes.
+          Install from source: load unpacked \`src/\` at this tag, or use the store listing once available.
           EOF
           )"
 
@@ -225,26 +283,36 @@ jobs:
 
           echo "Created tag and release v${VERSION}"
 
+      - name: Upload zip as workflow artifact
+        if: ${{ always() && steps.package.outputs.zip_path != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromecuts-${{ steps.version.outputs.version }}
+          path: ${{ steps.package.outputs.zip_path }}
+          if-no-files-found: ignore
+
       - name: Summary
         if: always()
         env:
           VERSION: ${{ steps.version.outputs.version }}
           PREVIOUS: ${{ steps.version.outputs.previous }}
           MODE: ${{ steps.version.outputs.mode }}
-          PUBLISH: ${{ inputs.publish }}
+          CWS_ACTION: ${{ inputs.cws_action }}
           RELEASE: ${{ inputs.create_github_release }}
           EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
         run: |
           {
-            echo "## Chrome Web Store + GitHub release"
+            echo "## ChromeCuts release run"
             echo ""
             echo "- **Version:** \`${PREVIOUS:-?} → ${VERSION:-?}\` (\`${MODE:-?}\`)"
-            echo "- **Extension ID:** \`$EXTENSION_ID\`"
-            echo "- **CWS publish requested:** \`$PUBLISH\`"
+            echo "- **cws_action:** \`$CWS_ACTION\`"
             echo "- **GitHub release:** \`$RELEASE\`"
-            if [ "$PUBLISH" != "true" ]; then
-              echo "- **Note:** draft upload only — publish step was skipped"
-            fi
+            echo "- **Extension ID:** \`${EXTENSION_ID:-n/a}\`"
+            case "$CWS_ACTION" in
+              none) echo "- **CWS:** no API calls (true dry run)" ;;
+              upload) echo "- **CWS:** upload only (no publish)" ;;
+              publish) echo "- **CWS:** upload + publish" ;;
+            esac
             if [ -n "${VERSION:-}" ] && [ "$RELEASE" = "true" ]; then
               echo "- **Tag:** \`v${VERSION}\`"
               echo "- **Release:** https://github.com/${{ github.repository }}/releases/tag/v${VERSION}"
