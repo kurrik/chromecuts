@@ -85,15 +85,25 @@ jobs:
         id: package
         run: |
           chmod +x scripts/package-extension.sh
-          # Capture version + path from script output
-          out="$(scripts/package-extension.sh store)"
-          echo "$out"
-          version="$(echo "$out" | sed -n 's/^version=//p' | tail -1)"
-          zip_path="$(echo "$out" | sed -n 's/^zip_path=//p' | tail -1)"
+          scripts/package-extension.sh store | tee /tmp/package.out
+          version="$(sed -n 's/^version=//p' /tmp/package.out | tail -1)"
+          zip_path="$(sed -n 's/^zip_path=//p' /tmp/package.out | tail -1)"
+          if [ -z "$version" ] || [ -z "$zip_path" ] || [ ! -f "$zip_path" ]; then
+            echo "::error::Packaging failed to produce version/zip_path"
+            cat /tmp/package.out
+            exit 1
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "zip_path=$zip_path" >> "$GITHUB_OUTPUT"
           ls -la "$zip_path"
-          unzip -l "$zip_path" | head -30
+          python3 - <<PY
+          import zipfile
+          z = zipfile.ZipFile("$zip_path")
+          print("zip entries:")
+          for n in z.namelist()[:40]:
+              print(" ", n)
+          assert "manifest.json" in z.namelist(), "manifest.json missing at zip root"
+          PY
 
       - name: Set up Node
         uses: actions/setup-node@v4
